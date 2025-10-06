@@ -11,4 +11,10 @@ pub enum Token {
 
     /// Simple string
     String(String),
+
+    /// Identifier ex. variable or function name
+    Identifier(String),
+
+    // Keywords
+    Let,
 }

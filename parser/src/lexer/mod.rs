@@ -23,21 +23,16 @@ impl <'a>Lexer<'a>{
         };
 
         match next {
-            '"' => {
-                self.lex_string()
-            }
-
-            '0'..='9' => {
-                self.lex_number(next)
-            },
+            '"' => self.lex_string(),
+            '0'..='9' => self.lex_number(next),
+            'a'..='z' | 'A'..='Z' => self.lex_keyword_or_ident(next),
 
             _ => Token::Illegal
         }
     }
 
-    fn lex_number(&mut self, current: char) -> Token {
-        let mut final_num = String::new();
-        final_num.push(current);
+    fn lex_number(&mut self, current_char: char) -> Token {
+        let mut final_num = String::from(current_char);
 
         while let Some(ch) = self.input_chars.peek() && ch.is_numeric() {
             final_num.push(*ch);
@@ -56,6 +51,21 @@ impl <'a>Lexer<'a>{
         }
 
         Token::String(final_str)
+    }
+
+    fn lex_keyword_or_ident(&mut self, current_char: char) -> Token {
+        let mut ident_string = String::from(current_char);
+
+        while let Some(ch) = self.input_chars.peek() && ch.is_alphabetic() {
+            ident_string.push(*ch);
+            self.input_chars.next();
+        }
+
+        match ident_string.as_str() {
+            "let" => Token::Let,
+
+            other => Token::Identifier(other.into()),
+        }
     }
 }
 

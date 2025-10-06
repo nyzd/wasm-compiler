@@ -23,11 +23,13 @@ impl <'a>Lexer<'a>{
         };
 
         match next {
-            '"' => self.lex_string(),
             '0'..='9' => self.lex_number(next),
             'a'..='z' | 'A'..='Z' => self.lex_keyword_or_ident(next),
 
-            _ => Token::Illegal
+            // Ignore empty space
+            ' ' | '\n' | '\r' => self.lex(),
+
+            c => Token::from(c)
         }
     }
 
@@ -43,16 +45,6 @@ impl <'a>Lexer<'a>{
         Token::Number(final_num.parse().unwrap())
     }
 
-    fn lex_string(&mut self) -> Token {
-        let mut final_str = String::new();
-
-        while let Some(ch) = self.input_chars.next() && ch != '"' {
-            final_str.push(ch);
-        }
-
-        Token::String(final_str)
-    }
-
     fn lex_keyword_or_ident(&mut self, current_char: char) -> Token {
         let mut ident_string = String::from(current_char);
 
@@ -61,11 +53,7 @@ impl <'a>Lexer<'a>{
             self.input_chars.next();
         }
 
-        match ident_string.as_str() {
-            "let" => Token::Let,
-
-            other => Token::Identifier(other.into()),
-        }
+        Token::from(ident_string)
     }
 }
 

@@ -1,4 +1,13 @@
 #[derive(PartialEq, Eq, Debug)]
+pub enum Keyword {
+    Let,
+    Function,
+    Return,
+    If,
+    Else,
+}
+
+#[derive(PartialEq, Eq, Debug)]
 pub enum Token {
     /// End of file
     Eof,
@@ -58,14 +67,17 @@ pub enum Token {
     /// Identifier ex. variable or function name
     Identifier(String),
 
-    // Keywords
-    Let,
+    Keyword(Keyword)
 }
 
 impl From<String> for Token {
     fn from(value: String) -> Self {
         match value.as_str() {
-            "let" => Self::Let,
+            "let" => Self::Keyword(Keyword::Let),
+            "fn" => Self::Keyword(Keyword::Function),
+            "return" => Self::Keyword(Keyword::Return),
+            "if" => Self::Keyword(Keyword::If),
+            "else" => Self::Keyword(Keyword::Else),
 
             other => Self::Identifier(other.to_string()),
         }

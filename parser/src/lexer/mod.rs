@@ -16,7 +16,6 @@ impl <'a>Lexer<'a>{
         }
     }
 
-
     fn lex(&mut self) -> Token {
         let Some(next) = self.input_chars.next() else {
             return Token::Eof;

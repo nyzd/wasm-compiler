@@ -3,12 +3,20 @@
 version = 4
 
 [[package]]
+name = "error"
+version = "0.1.0"
+
+[[package]]
 name = "parser"
 version = "0.1.0"
+dependencies = [
+ "error",
+]
 
 [[package]]
 name = "wasm-compiler"
 version = "0.1.0"
 dependencies = [
+ "error",
  "parser",
 ]

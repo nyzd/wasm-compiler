@@ -21,3 +21,30 @@ pub trait CompilerError: Send + Sync {
     /// Error is reported.
     fn stage(&self) -> &'static str;
 }
+
+pub struct ErrorBucket<T> {
+    errors: Vec<T>,
+}
+
+impl<T> ErrorBucket<T> {
+    pub fn new() -> Self {
+        Self { errors: vec![] }
+    }
+}
+
+impl<T> ErrorReporter<T> for ErrorBucket<T>
+where
+    T: CompilerError,
+{
+    fn report(&mut self, error: T) {
+        self.errors.push(error);
+    }
+
+    fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    fn errors(&self) -> &[T] {
+        &self.errors
+    }
+}

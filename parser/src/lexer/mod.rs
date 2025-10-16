@@ -1,6 +1,6 @@
 pub mod token;
 
-use error::{CompilerError, ErrorReporter};
+use error::{CompilerError, ErrorBucket, ErrorReporter};
 use std::fmt::Display;
 use std::iter::Peekable;
 use std::str::Chars;
@@ -9,14 +9,16 @@ use crate::lexer::token::Token;
 
 pub struct Lexer<'a> {
     input_chars: Peekable<Chars<'a>>,
-    errors: Vec<LexerError<'a>>,
+    errors: Vec<LexerError>,
+    error_bucket: &'a mut ErrorBucket<LexerError>,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Self {
+    pub fn new(input: &'a str, error_bucket: &'a mut ErrorBucket<LexerError>) -> Self {
         Self {
             input_chars: input.chars().peekable(),
             errors: vec![],
+            error_bucket,
         }
     }
 
@@ -48,7 +50,7 @@ impl<'a> Lexer<'a> {
 
         let parsed = final_num.parse::<usize>().unwrap_or_else(|_| {
             self.report(LexerError::new(
-                "Couldn't Parse the number!",
+                "Couldn't Parse the number!".to_string(),
                 "ERRR".to_string(),
                 0,
                 1,
@@ -75,40 +77,38 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = (Token, Option<LexerError<'a>>);
+    type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
         let token = self.lex();
 
         if let Token::Illegal(c) = token {
-            self.report(LexerError::new(
-                "Illegal char",
+            self.error_bucket.report(LexerError::new(
+                "Illegal char".to_string(),
                 format!("Couldn't lex this char '{}'", c),
                 0,
                 0,
             ));
-
-            return Some((token, self.errors().first().cloned()));
         }
 
         if token == Token::Eof {
             return None;
         }
 
-        Some((token, None))
+        Some(token)
     }
 }
 
 #[derive(Clone)]
-pub struct LexerError<'a> {
+pub struct LexerError {
     id: usize,
-    title: &'a str,
+    title: String,
     line_snippet: String,
     description: String,
 }
 
-impl<'a> LexerError<'a> {
-    pub fn new(title: &'a str, description: String, line: u32, col: u32) -> Self {
+impl LexerError {
+    pub fn new(title: String, description: String, line: u32, col: u32) -> Self {
         Self {
             id: 0x1,
             line_snippet: format!("{}:{}", line, col),
@@ -118,13 +118,13 @@ impl<'a> LexerError<'a> {
     }
 }
 
-impl<'a> CompilerError for LexerError<'a> {
+impl CompilerError for LexerError {
     fn id(&self) -> usize {
         self.id
     }
 
     fn title(&self) -> &str {
-        self.title
+        &self.title
     }
 
     fn summary(&self) -> &str {
@@ -140,7 +140,7 @@ impl<'a> CompilerError for LexerError<'a> {
     }
 }
 
-impl<'a> Display for LexerError<'a> {
+impl Display for LexerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -155,8 +155,8 @@ impl<'a> Display for LexerError<'a> {
     }
 }
 
-impl<'a> ErrorReporter<LexerError<'a>> for Lexer<'a> {
-    fn report(&mut self, error: LexerError<'a>) {
+impl<'a> ErrorReporter<LexerError> for Lexer<'a> {
+    fn report(&mut self, error: LexerError) {
         self.errors.push(error);
     }
 
@@ -164,7 +164,7 @@ impl<'a> ErrorReporter<LexerError<'a>> for Lexer<'a> {
         !self.errors.is_empty()
     }
 
-    fn errors(&self) -> &[LexerError<'a>] {
+    fn errors(&self) -> &[LexerError] {
         &self.errors
     }
 }

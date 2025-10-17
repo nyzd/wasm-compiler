@@ -1,21 +1,31 @@
-use crate::lexer::token::Token;
+#[derive(Debug)]
+pub struct Ident {
+    value: String,
+}
 
 #[derive(Debug)]
-pub struct NumberExpression(usize);
+pub struct NumberExpr {
+    value: usize,
+    raw: String,
+}
+
+#[derive(Debug)]
+pub struct StringExpr {
+    value: String,
+}
 
 #[derive(Debug)]
 pub enum Expression {
-    Number(NumberExpression),
+    Number(NumberExpr),
+    String(StringExpr),
 }
 
-impl From<Token> for Expression {
-    fn from(value: Token) -> Self {
-        match value {
-            Token::Number(n) => Self::Number(NumberExpression(n)),
-
-            _ => todo!(),
-        }
-    }
+#[derive(Debug)]
+pub struct LetStatement {
+    name: Ident,
+    expr: Expression,
 }
 
-pub struct Ast {}
+pub enum Statement {
+    Let(LetStatement),
+}

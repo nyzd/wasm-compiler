@@ -1,6 +1,9 @@
 # Error Handling
 
 We have a seperate lib for Error handling, Which all the crates and libs use it.
+Using some traits and sturcts we have a working error module :), We can have multiple types of errors
+and for each part of compiler, Also more importantly we can collect errors not just crash after one error
+**We should crash after part of the compiler is having errors for example if the lexer has errors we should crash and print the errors so user can fix them, not just show them and move to parser part (That would be stupid)**
 
 # Lexer
 

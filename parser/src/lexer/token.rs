@@ -8,7 +8,31 @@ pub enum Keyword {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum Token {
+pub struct Span {
+    pub line: u32,
+    pub col: u32,
+}
+
+impl Span {
+    pub fn new(line: u32, col: u32) -> Self {
+        Self { line, col }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct Token {
+    pub kind: TokenKind,
+    pub span: Span,
+}
+
+impl Token {
+    pub fn new(kind: TokenKind, span: Span) -> Self {
+        Self { kind, span }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum TokenKind {
     /// End of file
     Eof,
 
@@ -67,10 +91,10 @@ pub enum Token {
     /// Identifier ex. variable or function name
     Identifier(String),
 
-    Keyword(Keyword)
+    Keyword(Keyword),
 }
 
-impl From<String> for Token {
+impl From<String> for TokenKind {
     fn from(value: String) -> Self {
         match value.as_str() {
             "let" => Self::Keyword(Keyword::Let),
@@ -84,7 +108,7 @@ impl From<String> for Token {
     }
 }
 
-impl From<char> for Token {
+impl From<char> for TokenKind {
     fn from(value: char) -> Self {
         match value {
             '=' => Self::Equal,
@@ -103,7 +127,7 @@ impl From<char> for Token {
             '/' => Self::Slash,
             '"' => Self::Quotation,
 
-            c => Self::Illegal(c)
+            c => Self::Illegal(c),
         }
     }
 }

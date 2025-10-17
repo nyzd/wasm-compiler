@@ -5,12 +5,14 @@ use std::fmt::Display;
 use std::iter::Peekable;
 use std::str::Chars;
 
-use crate::lexer::token::Token;
+use crate::lexer::token::{Span, Token, TokenKind};
 
 pub struct Lexer<'a> {
     input_chars: Peekable<Chars<'a>>,
     errors: Vec<LexerError>,
     error_bucket: &'a mut ErrorBucket<LexerError>,
+    line: u32,
+    col: u32,
 }
 
 impl<'a> Lexer<'a> {
@@ -19,12 +21,14 @@ impl<'a> Lexer<'a> {
             input_chars: input.chars().peekable(),
             errors: vec![],
             error_bucket,
+            line: 1,
+            col: 1,
         }
     }
 
     fn lex(&mut self) -> Token {
         let Some(next) = self.input_chars.next() else {
-            return Token::Eof;
+            return Token::new(TokenKind::Eof, Span::new(self.line, self.col));
         };
 
         match next {
@@ -32,19 +36,33 @@ impl<'a> Lexer<'a> {
             'a'..='z' | 'A'..='Z' => self.lex_keyword_or_ident(next),
 
             // Ignore empty space
-            ' ' | '\n' | '\r' => self.lex(),
+            ' ' => {
+                self.col += 1;
+                self.lex()
+            }
+            '\n' | '\r' => {
+                self.line += 1;
+                self.lex()
+            }
 
-            c => Token::from(c),
+            c => {
+                let (line, col) = (self.line, self.col);
+                self.col += 1;
+                Token::new(TokenKind::from(c), Span::new(line, col))
+            }
         }
     }
 
     fn lex_number(&mut self, current_char: char) -> Token {
         let mut final_num = String::from(current_char);
+        let (line, col) = (self.line, self.col);
+        self.col += 1;
 
         while let Some(ch) = self.input_chars.peek()
             && ch.is_numeric()
         {
             final_num.push(*ch);
+            self.col += 1;
             self.input_chars.next();
         }
 
@@ -52,27 +70,28 @@ impl<'a> Lexer<'a> {
             self.report(LexerError::new(
                 "Couldn't Parse the number!".to_string(),
                 "ERRR".to_string(),
-                0,
-                1,
+                &Span::new(line, col),
             ));
             0
         });
 
-        // TODO: Handle parse Result
-        Token::Number(parsed)
+        Token::new(TokenKind::Number(parsed), Span::new(line, col))
     }
 
     fn lex_keyword_or_ident(&mut self, current_char: char) -> Token {
         let mut ident_string = String::from(current_char);
+        let (line, col) = (self.line, self.col);
+        self.col += 1;
 
         while let Some(ch) = self.input_chars.peek()
             && ch.is_alphabetic()
         {
             ident_string.push(*ch);
+            self.col += 1;
             self.input_chars.next();
         }
 
-        Token::from(ident_string)
+        Token::new(TokenKind::from(ident_string), Span::new(line, col))
     }
 }
 
@@ -82,17 +101,16 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let token = self.lex();
 
-        if let Token::Illegal(c) = token {
+        if token.kind == TokenKind::Eof {
+            return None;
+        }
+
+        if let TokenKind::Illegal(c) = token.kind {
             self.error_bucket.report(LexerError::new(
                 "Illegal char".to_string(),
                 format!("Couldn't lex this char '{}'", c),
-                0,
-                0,
+                &token.span,
             ));
-        }
-
-        if token == Token::Eof {
-            return None;
         }
 
         Some(token)
@@ -108,10 +126,11 @@ pub struct LexerError {
 }
 
 impl LexerError {
-    pub fn new(title: String, description: String, line: u32, col: u32) -> Self {
+    // Maybe can use Cow<Span>
+    pub fn new(title: String, description: String, span: &Span) -> Self {
         Self {
             id: 0x1,
-            line_snippet: format!("{}:{}", line, col),
+            line_snippet: format!("{}:{}", span.line, span.col),
             title,
             description: description.to_string(),
         }
